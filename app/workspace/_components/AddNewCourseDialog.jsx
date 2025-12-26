@@ -59,7 +59,7 @@ function AddNewCourseDialog({ children }) {
         })
         console.log(result.data);
         setLoading(false);
-        router.push('/workspace/edit-course/'+result.data?.courseId);
+        router.push('/workspace/edit-course/'+courseId);
 
     }catch(e){
         setLoading(false);
@@ -82,8 +82,8 @@ function AddNewCourseDialog({ children }) {
                             </div>
                             <div>
                                 <label> Course Description(Optional)</label>
-                                <Textarea placeholder="Course Description" 
-                                onChange={(event)=>onHandleInputChange('descriptiom',event?.target.value)}/>
+                                <Textarea placeholder="Course Description"
+                                onChange={(event)=>onHandleInputChange('description',event?.target.value)}/>
                             </div>
                             <div>
                                 <label> No. of Chapters</label>

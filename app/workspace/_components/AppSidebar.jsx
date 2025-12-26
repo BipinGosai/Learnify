@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Book, Compass, LayoutDashboard, UserCircle2Icon,WalletCards } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-// import AddNewCourseDialog from './AddNewCourseDialog'
+import AddNewCourseDialog from './AddNewCourseDialog'
 
 const SidebarOptions=[
   {
@@ -57,9 +57,9 @@ function AppSidebar() {
         </SidebarHeader>
       <SidebarContent>
         <SidebarGroup >
-          {/* <AddNewCourseDialog> */}
+          <AddNewCourseDialog>
           <Button>Create New Course</Button>
-          {/* </AddNewCourseDialog> */}
+          </AddNewCourseDialog>
           </SidebarGroup>
 
         <SidebarGroup >
