@@ -61,7 +61,7 @@ export async function POST(req) {
                 try {
                     // Generate content using OpenRouter
                     const response = await openai.chat.completions.create({
-                        model: "openai/gpt-3.5-turbo", // or any model from OpenRouter
+                        model: "meta-llama/llama-3.2-3b-instruct:free", // free model from OpenRouter
                         messages: [{
                             role: "user",
                             content: PROMPT + JSON.stringify(chapter)
