@@ -1,4 +1,4 @@
-// app/api/courses/route.jsx
+
 import { db } from "@/config/db";
 import { coursesTable } from "@/config/schema";
 import { currentUser } from "@clerk/nextjs/server";
