@@ -5,14 +5,18 @@ import { PlayCircle } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react'
 import { Button } from '@/components/ui/button';
-import { Progress } from '@radix-ui/react-progress';
+import { Progress } from '@/components/ui/progress';
+
 
 function EnrollCourseCard({course,enrollCourse}) {
     const courseJson = course?.course || course;
 
-    const CalculatePerProgress=()=>{
-        return (enrollCourse?.completedChapters?.length??0/course?.courseContent?.length)*100
-    }
+const CalculatePerProgress = () => {
+  const completed = enrollCourse?.completedChapters?.length ?? 0;
+  const total = courseJson?.courseContent?.length ?? 1;
+
+  return Math.round((completed / total) * 100);
+};
   return (
     <div className='shadow rounded-xl'>
       <Image src={course?.bannerImageUrl} alt={course.name}

@@ -31,7 +31,7 @@ export async function GET(req) {
             );
         }
 
-        // 🔹 Single course
+        //  Single course
         if (courseId) {
             const result = await db
                 .select()
@@ -41,7 +41,7 @@ export async function GET(req) {
             return NextResponse.json(result[0] || null);
         }
 
-        // 🔹 User's own courses
+        //  User's own courses
         const result = await db
             .select()
             .from(coursesTable)
