@@ -9,11 +9,12 @@ const PROMPT = `Depends on Chapter name and Topic. Generate content for each top
 Schema:
 {
   "chapterName": "<>",
-  "topics":
+  "topics": [
     {
       "topic": "<>",
       "content": "<>"
     }
+  ]
 }
 :User Input:
 `;

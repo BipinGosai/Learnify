@@ -40,7 +40,7 @@ function ChapterListSidebar({ courseInfo }) {
             </AccordionTrigger>
             <AccordionContent asChild>
               <div className="">
-                {chapter.courseData.topics.map((topic,index_)=>(
+                {(Array.isArray(chapter.courseData.topics) ? chapter.courseData.topics : [chapter.courseData.topics]).map((topic,index_)=>(
                   <h2 key={index_}
                    className={`p-2 bg-white my-1 rounded-lg
                      ${completedChapter.includes(index) ?'bg-purple-200 text-purple-800': 'bg-white' }`}>

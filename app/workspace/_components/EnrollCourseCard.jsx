@@ -9,11 +9,11 @@ import { Progress } from '@/components/ui/progress';
 
 
 function EnrollCourseCard({course,enrollCourse}) {
-    const courseJson = course?.course || course;
+    const courseJson = course?.courseJson?.course || course;
 
 const CalculatePerProgress = () => {
   const completed = enrollCourse?.completedChapters?.length ?? 0;
-  const total = courseJson?.courseContent?.length ?? 1;
+  const total = course?.courseContent?.length ?? 1;
 
   return Math.round((completed / total) * 100);
 };
@@ -24,9 +24,8 @@ const CalculatePerProgress = () => {
         height={300}
         className='w-full aspect-video rounded-t-xl object-cover' />
       <div className='p-4 flex-col gap-4'>
-        <h2 className='font-bold text-lg'>{courseJson?.name}</h2>
-        <p className='line-clamp-3 text-grey-400 text-sm'>{courseJson?.description}</p>
-        <div> 
+        <div>
+            <h2 className='font-bold text-lg'>{courseJson?.name}</h2>
             <h2 className='flex justify-between text-sm text-primary'>Progress <span>{CalculatePerProgress()}%</span></h2>
             <div className='bg-purple-200 h-2 rounded-full'>
                 <Progress value={CalculatePerProgress()}/>
