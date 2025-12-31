@@ -10,7 +10,7 @@ function WorkspaceProvider({children}) {
         <AppSidebar/>     
     <div className='w-full'>
         <AppHeader/>
-        <div className='p-10'>
+        <div className='p-4 md:p-10'>
       {children}
       </div>
     </div>

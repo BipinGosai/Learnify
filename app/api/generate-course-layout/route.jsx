@@ -47,7 +47,7 @@ export async function POST(req) {
     else if (has({ plan: 'starter' })) userPlan = 'starter';
 
     // Set course creation limit based on plan
-    const planLimits = { free: 1, starter: 5, premium: 10 };
+    const planLimits = { free: 10, starter: 5, premium: 10 };
     const maxCourses = planLimits[userPlan];
 
     // Check how many courses user has already created
@@ -89,7 +89,14 @@ export async function POST(req) {
     }
 
     // Generate course banner image
-    const bannerImageUrl = await GenerateImage(JSONResp.course?.imagePrompt);
+    const bannerPrompt =
+      (typeof JSONResp.course?.imagePrompt === 'string' && JSONResp.course.imagePrompt.trim())
+        ? JSONResp.course.imagePrompt.trim()
+        : (typeof JSONResp.course?.chapters?.[0]?.imagePrompt === 'string' && JSONResp.course.chapters[0].imagePrompt.trim())
+          ? JSONResp.course.chapters[0].imagePrompt.trim()
+          : `Create a modern course banner illustration for: ${JSONResp.course?.name ?? 'an online course'}`;
+
+    const bannerImageUrl = await GenerateImage(bannerPrompt);
 
     // Save course to database
     await db.insert(coursesTable).values({
@@ -110,21 +117,34 @@ export async function POST(req) {
 
 const GenerateImage = async (imagePrompt) => {
   const BASE_URL = 'https://aigurulab.tech';
-  const result = await axios.post(
-    BASE_URL + '/api/generate-image',
-    {
-      width: 1024,
-      height: 1024,
-      input: imagePrompt,
-      model: 'sdxl',
-      aspectRatio: '16:9',
-    },
-    {
-      headers: {
-        'x-api-key': process.env.AI_GURU_LAB_API_KEY,
-        'Content-Type': 'application/json',
-      },
+  try {
+    const apiKey = process.env.AI_GURU_LAB_API_KEY || process.env.AI_GURU_LAB_API;
+    if (!apiKey) {
+      return '';
     }
-  );
-  return result.data.image;
+    if (!imagePrompt || typeof imagePrompt !== 'string') {
+      return '';
+    }
+
+    const result = await axios.post(
+      BASE_URL + '/api/generate-image',
+      {
+        width: 1024,
+        height: 1024,
+        input: imagePrompt,
+        model: 'sdxl',
+        aspectRatio: '16:9',
+      },
+      {
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return result.data.image || '';
+  } catch (error) {
+    console.error('Banner image generation failed:', error?.message ?? error);
+    return '';
+  }
 };

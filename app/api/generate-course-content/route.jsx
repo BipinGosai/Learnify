@@ -21,31 +21,52 @@ Schema:
 
 export async function POST(req) {
     const { courseJson, courseTitle, courseId } = await req.json();
+    const chapters = courseJson?.chapters;
+    if (!courseId) {
+        return NextResponse.json({ error: 'courseId is required' }, { status: 400 });
+    }
+    if (!Array.isArray(chapters) || chapters.length === 0) {
+        return NextResponse.json({ error: 'courseJson.chapters is required' }, { status: 400 });
+    }
 
-    const promises = courseJson?.chapters?.map(async (chapter) => {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const promises = chapters.map(async (chapter) => {
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-        const result = await model.generateContent(PROMPT + JSON.stringify(chapter));
-        const response = await result.response;
-        const text = response.text();
+            const result = await model.generateContent(PROMPT + JSON.stringify(chapter));
+            const response = await result.response;
+            const text = response.text();
 
-        // Clean the response
-        const RawJson = text.replace('```json', '').replace('```', '').trim();
-        const JSONResp = JSON.parse(RawJson);
+            const rawJson = text.replace(/```json/i, '').replace(/```/g, '').trim();
+            let JSONResp;
+            try {
+                JSONResp = JSON.parse(rawJson);
+            } catch (e) {
+                JSONResp = {
+                    chapterName: chapter?.chapterName ?? 'Untitled',
+                    topics: [],
+                    _error: 'AI returned invalid JSON',
+                    _raw: text,
+                };
+            }
 
-        // Get YouTube videos
-        const youtubeData = await GetYoutubeVideo(chapter?.chapterName);
-
-        console.log({
-            youtubeVideo: youtubeData,
-            courseData: JSONResp
-        });
-
-        return {
-            youtubeVideo: youtubeData,
-            courseData: JSONResp
-        };
+            const youtubeData = await GetYoutubeVideo(chapter?.chapterName);
+            return {
+                youtubeVideo: youtubeData,
+                courseData: JSONResp,
+            };
+        } catch (error) {
+            console.error('Error generating chapter content:', error);
+            return {
+                youtubeVideo: [],
+                courseData: {
+                    chapterName: chapter?.chapterName ?? 'Untitled',
+                    topics: [],
+                    _error: 'Failed to generate content',
+                },
+            };
+        }
     });
 
     const CourseContent = await Promise.all(promises);

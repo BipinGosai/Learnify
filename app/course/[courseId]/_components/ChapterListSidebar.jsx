@@ -13,45 +13,62 @@ function ChapterListSidebar({ courseInfo }) {
   const course = courseInfo?.courses;
   const enrollCourse =courseInfo?.enrollCourse;
   const courseContent = courseInfo?.courses?.courseContent;
-  const {SelectedChapterIndex,setSelectedChapterIndex}=useContext(SelectedChapterIndexContext)
+  const { selectedChapterIndex, setSelectedChapterIndex } = useContext(SelectedChapterIndexContext)
   let completedChapter= enrollCourse?.completedChapters ?? [];
 
   if (!courseContent || courseContent.length === 0) {
     return (
-      <div className="w-80 bg-secondary h-screen p-5">
-        <h2 className="text-xl font-bold my-5">Chapters</h2>
+      <aside className="w-full md:w-80 flex-none bg-secondary h-auto md:h-[calc(100svh-10rem)] p-4 rounded-xl border border-border overflow-auto">
+        <h2 className="text-lg font-bold">Chapters</h2>
         <p className="text-sm text-muted-foreground">
           No chapters found
         </p>
-      </div>
+      </aside>
     );
   }
   return (
-    <div className="w-160 bg-secondary h-screen p-10">
-      <h2 className="text-2xl font-bold my-5">Chapters ({courseContent?.length})</h2>
+    <aside className="w-full md:w-80 flex-none bg-secondary h-auto md:h-[calc(100svh-10rem)] p-4 rounded-xl border border-border overflow-auto overflow-x-hidden">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold">Chapters</h2>
+        <p className="text-xs text-muted-foreground">{courseContent?.length} total</p>
+      </div>
 
       <Accordion type="single" collapsible >
         {courseContent?.map((chapter, index) => (
-          <AccordionItem key={index} value={chapter.courseData.chapterName}
-            onClick={()=> setSelectedChapterIndex(index)}>
-            <AccordionTrigger className={ `text-lg font-medium px-5
-              ${completedChapter.includes(index) ?'bg-purple-100 text-purple-800':'' } `}>
-              {index+1}.{chapter.courseData.chapterName}
+          <AccordionItem key={chapter?.cid ?? index} value={String(index)}>
+            <AccordionTrigger
+              onClick={() => setSelectedChapterIndex(index)}
+              className={
+                `text-sm font-medium px-3 py-3 rounded-lg hover:no-underline text-left min-w-0 ` +
+                `${completedChapter.includes(index) ? "bg-purple-100 text-purple-800" : ""} ` +
+                `${selectedChapterIndex === index ? "ring-1 ring-border bg-white" : ""}`
+              }
+            >
+              <span className="block min-w-0 whitespace-normal break-words">
+                {index + 1}. {chapter.courseData.chapterName}
+              </span>
             </AccordionTrigger>
             <AccordionContent asChild>
-              <div className="">
+              <div className="px-3 pb-3">
                 {(Array.isArray(chapter.courseData.topics) ? chapter.courseData.topics : [chapter.courseData.topics]).map((topic,index_)=>(
-                  <h2 key={index_}
-                   className={`p-2 bg-white my-1 rounded-lg
-                     ${completedChapter.includes(index) ?'bg-purple-200 text-purple-800': 'bg-white' }`}>
-                      {completedChapter.includes(index)}{topic?.topic}</h2>
+                  <div
+                    key={index_}
+                    className={
+                      `px-3 py-2 my-1 rounded-md text-xs border border-border/50 leading-snug ` +
+                      `${completedChapter.includes(index) ? "bg-purple-200 text-purple-800" : "bg-white"}`
+                    }
+                  >
+                    <span className="block whitespace-normal break-words">
+                      {topic?.topic}
+                    </span>
+                  </div>
                 ))}
               </div>
             </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
-    </div>
+    </aside>
   );
 }
 

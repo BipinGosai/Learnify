@@ -32,7 +32,7 @@ function AddNewCourseDialog({ children }) {
         name:'',
         description:'',
         includeVideo:false,
-        noOfChapter:1,
+        noOfChapters:1,
         category:'',
         level:''
     })
@@ -51,6 +51,18 @@ const onGenerate = async ()=>{
         console.log(formData);
         const courseId = uuidv4();
         try{
+        if (!formData?.name?.trim()) {
+            toast.error('Course name is required');
+            return;
+        }
+        if (!formData?.level) {
+            toast.error('Difficulty level is required');
+            return;
+        }
+        if (!formData?.noOfChapters || Number(formData.noOfChapters) < 1) {
+            toast.error('No. of chapters must be at least 1');
+            return;
+        }
         setLoading(true);
         const result = await axios.post('/api/generate-course-layout',{
             ...formData,
@@ -60,9 +72,18 @@ const onGenerate = async ()=>{
         if(result.data.resp=='limit exceed'){
             toast.warning('Please subscribe to plan!')
             router.push('/workspace/billing');
+            setLoading(false);
+            return;
         }
+        const nextCourseId = result.data?.courseId;
+        if (!nextCourseId) {
+            toast.error('Failed to create course. Please try again.');
+            setLoading(false);
+            return;
+        }
+
         setLoading(false);
-        router.push('/workspace/edit-course/'+result.data?.courseId);
+        router.push('/workspace/edit-course/'+nextCourseId);
 
     }catch(e){
         setLoading(false);
@@ -81,7 +102,7 @@ const onGenerate = async ()=>{
                             <div>
                                 <label> Course Name</label>
                                 <Input placeholder="Course Name" 
-                                onChange={(event)=>onHandleInputChange('courseName',event?.target.value)}/>
+                                onChange={(event)=>onHandleInputChange('name',event?.target.value)}/>
                             </div>
                             <div>
                                 <label> Course Description(Optional)</label>
@@ -91,7 +112,7 @@ const onGenerate = async ()=>{
                             <div>
                                 <label> No. of Chapters</label>
                                 <Input placeholder="No. of Chapters" type='number' 
-                                onChange={(event)=>onHandleInputChange('noOfChapter',event?.target.value)}/>
+                                onChange={(event)=>onHandleInputChange('noOfChapters',Number(event?.target.value || 1))}/>
                             </div>
                             <div className='flex gap-3 item-center'>
                                 <label>Include Video</label>
@@ -114,7 +135,10 @@ const onGenerate = async ()=>{
                             </div>
                             <div>
                                 <label> Category </label>
-                                <Input placeholder="Category (Separated by Comma)"/>
+                                                                <Input
+                                                                    placeholder="Category (Separated by Comma)"
+                                                                    onChange={(event)=>onHandleInputChange('category',event?.target.value)}
+                                                                />
                             </div>
                             <Button className={'w-full'} onClick={onGenerate} disabled={loading}>
                                 {loading?<Loader2Icon className='animate-spin'/> :

@@ -6,10 +6,13 @@ import ChapterContent from "./_components/ChapterContent";
 import ChapterListSidebar from "./_components/ChapterListSidebar";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 function Course() {
   const { courseId } = useParams();
   const [courseInfo, setCourseInfo] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (courseId) {
@@ -27,10 +30,24 @@ function Course() {
 
   return (
     <div>
-      <AppHeader hideSidebar={true} />
-      <div className="flex gap-10">
-        <ChapterListSidebar courseInfo={courseInfo} />
-        <ChapterContent courseInfo={courseInfo} refreshData={GetEnrolledCourseById} />
+      <AppHeader hideSidebar={true} hideUserButton={true} showDashboardLink={true} />
+      <div className="px-4 md:px-6 py-4">
+        <div className="mb-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSidebarOpen((v) => !v)}
+          >
+            {isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
+            {isSidebarOpen ? "Hide Chapters" : "Show Chapters"}
+          </Button>
+        </div>
+
+        <div className="flex w-full flex-col md:flex-row gap-4 md:gap-6 items-start">
+          {isSidebarOpen && <ChapterListSidebar courseInfo={courseInfo} />}
+          <ChapterContent courseInfo={courseInfo} refreshData={GetEnrolledCourseById} />
+        </div>
       </div>
     </div>
   );

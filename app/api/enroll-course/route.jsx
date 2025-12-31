@@ -4,10 +4,23 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/config/db";
 import { NextResponse } from "next/server";
 
+function getUserEmailFromClerkUser(user) {
+  return user?.primaryEmailAddress?.emailAddress ?? null;
+}
+
 // Handle course enrollment
 export async function POST(req) {
   const { courseId } = await req.json();
   const user = await currentUser();
+  const userEmail = getUserEmailFromClerkUser(user);
+
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!courseId) {
+    return NextResponse.json({ error: "courseId is required" }, { status: 400 });
+  }
 
   // Check if course is already enrolled
   const enrollCourses = await db
@@ -15,7 +28,7 @@ export async function POST(req) {
     .from(enrollCourseTable)
     .where(
       and(
-        eq(enrollCourseTable.userEmail, user?.primaryEmailAddress.emailAddress),
+        eq(enrollCourseTable.userEmail, userEmail),
         eq(enrollCourseTable.cid, courseId)
       )
     );
@@ -25,7 +38,7 @@ export async function POST(req) {
       .insert(enrollCourseTable)
       .values({
         cid: courseId,
-        userEmail: user.primaryEmailAddress?.emailAddress,
+        userEmail,
       })
       .returning(enrollCourseTable);
 
@@ -38,8 +51,13 @@ export async function POST(req) {
 // Fetch enrolled courses
 export async function GET(req) {
   const user = await currentUser();
+  const userEmail = getUserEmailFromClerkUser(user);
   const { searchParams } = new URL(req.url);
   const courseId = searchParams?.get("courseId");
+
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (courseId) {
     const result = await db
@@ -48,7 +66,7 @@ export async function GET(req) {
       .innerJoin(enrollCourseTable, eq(coursesTable.cid, enrollCourseTable.cid))
       .where(
         and(
-          eq(enrollCourseTable.userEmail, user?.primaryEmailAddress.emailAddress),
+          eq(enrollCourseTable.userEmail, userEmail),
           eq(enrollCourseTable.cid, courseId)
         )
       )
@@ -61,7 +79,7 @@ export async function GET(req) {
     .select()
     .from(coursesTable)
     .innerJoin(enrollCourseTable, eq(coursesTable.cid, enrollCourseTable.cid))
-    .where(eq(enrollCourseTable.userEmail, user?.primaryEmailAddress.emailAddress))
+    .where(eq(enrollCourseTable.userEmail, userEmail))
     .orderBy(desc(enrollCourseTable.id));
 
   return NextResponse.json(result);
@@ -70,11 +88,20 @@ export async function GET(req) {
 export  async function PUT(req) {
   const {completedChapter,courseId}=await req.json();
   const user=await currentUser();
+  const userEmail = getUserEmailFromClerkUser(user);
+
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!courseId) {
+    return NextResponse.json({ error: "courseId is required" }, { status: 400 });
+  }
 
   const result=await db.update(enrollCourseTable).set({
     completedChapters:completedChapter
   }).where(and(eq(enrollCourseTable.cid,courseId),
-  eq(enrollCourseTable.userEmail,user?.primaryEmailAddress?.emailAddress)))
+  eq(enrollCourseTable.userEmail,userEmail)))
    .returning(enrollCourseTable)
 
    return NextResponse.json(result);

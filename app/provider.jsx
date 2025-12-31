@@ -12,15 +12,23 @@ function Provider ({children}) {
     const [selectedChapterIndex,setSelectedChapterIndex]=useState(0);
 
     useEffect(()=>{
-        user && CreateNewUser();
+        const email = user?.primaryEmailAddress?.emailAddress;
+        if (email) {
+            CreateNewUser();
+        }
     }, [user])
     const CreateNewUser=async()=>{
-        const result=await axios.post('/api/user',{
-            name:user?.fullName,
-            email:user?.primaryEmailAddress?.emailAddress
-        });
-        console.log(result.data);
-        setUserDetail(result.data);
+        try {
+            const result=await axios.post('/api/user',{
+                name:user?.fullName,
+                email:user?.primaryEmailAddress?.emailAddress
+            });
+            console.log(result.data);
+            setUserDetail(result.data);
+        } catch (err) {
+            // keep app usable if the API fails
+            setUserDetail(undefined);
+        }
     }
     return(
         <UserDetailContext.Provider value={{userDetail,setUserDetail}}>

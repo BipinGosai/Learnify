@@ -1,99 +1,241 @@
 import { Button } from "@/components/ui/button";
 import { SelectedChapterIndexContext } from "@/context/SelectedChapterIndexContext";
 import axios from "axios";
-import { CheckCircle, Loader2Icon, X } from "lucide-react";
+import { CheckCircle, ChevronDown, Loader2Icon, X } from "lucide-react";
 import { useParams } from "next/navigation";
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import YouTube from "react-youtube";
 import { toast } from "sonner";
 
-function ChapterContent({courseInfo, refreshData}){
-    const {courseId}=useParams();
-   const { course, enrollCourse } = courseInfo || {};
-   const courseContent = courseInfo?.courses?.courseContent;
-   const {selectedChapterIndex,setSelectedChapterIndex}=useContext(SelectedChapterIndexContext)
-    const videoData=courseContent?.[selectedChapterIndex]?.youtubeVideo
-    const topics=courseContent?.[selectedChapterIndex]?.courseData?.topics
-    let completedChapter=enrollCourse?.completedChapters ?? [];
-    const [loading, setLoading]=useState(false);
+function ChapterContent({ courseInfo, refreshData }) {
+    const { courseId } = useParams();
+    const courseContent = courseInfo?.courses?.courseContent;
+    const enrollCourse = courseInfo?.enrollCourse;
 
-    const markChapterCompleted = async() =>{
-        setLoading(true)     
-        completedChapter.push(selectedChapterIndex);
-        const result=await axios.put('/api/enroll-course',{
-            courseId:courseId,
-            completedChapter:completedChapter
+    const { selectedChapterIndex, setSelectedChapterIndex } = useContext(SelectedChapterIndexContext);
+    const [loading, setLoading] = useState(false);
+    const [showVideos, setShowVideos] = useState(true);
+
+    const videoData = courseContent?.[selectedChapterIndex]?.youtubeVideo;
+    const topics = courseContent?.[selectedChapterIndex]?.courseData?.topics;
+
+    const youtubeOpts = useMemo(
+        () => ({
+            width: "100%",
+            height: "100%",
+            playerVars: {
+                modestbranding: 1,
+                rel: 0,
+            },
+        }),
+        []
+    );
+
+    const completedChapter = useMemo(
+        () => (Array.isArray(enrollCourse?.completedChapters) ? enrollCourse.completedChapters : []),
+        [enrollCourse?.completedChapters]
+    );
+
+    const topicList = useMemo(() => (Array.isArray(topics) ? topics : []), [topics]);
+    const [selectedTopicIndex, setSelectedTopicIndex] = useState(0);
+
+    const pendingTopicIndexRef = useRef(null);
+
+    useEffect(() => {
+        if (pendingTopicIndexRef.current !== null) {
+            setSelectedTopicIndex(pendingTopicIndexRef.current);
+            pendingTopicIndexRef.current = null;
+            return;
+        }
+        setSelectedTopicIndex(0);
+    }, [selectedChapterIndex]);
+
+    const isFirstChapter = selectedChapterIndex === 0;
+    const isLastChapter = !courseContent || selectedChapterIndex >= courseContent.length - 1;
+    const isFirstSlide = selectedTopicIndex === 0;
+    const isLastSlide = topicList.length === 0 ? true : selectedTopicIndex >= topicList.length - 1;
+
+    const getTopicCountForChapter = (chapterIndex) => {
+        const chapterTopics = courseContent?.[chapterIndex]?.courseData?.topics;
+        if (Array.isArray(chapterTopics)) return chapterTopics.length;
+        return chapterTopics ? 1 : 0;
+    };
+
+    const handlePrev = () => {
+        if (topicList.length === 0) return;
+
+        if (!isFirstSlide) {
+            setSelectedTopicIndex((i) => Math.max(0, i - 1));
+            return;
+        }
+
+        if (isFirstChapter) return;
+
+        const prevChapterIndex = Math.max(0, selectedChapterIndex - 1);
+        const prevTopicCount = getTopicCountForChapter(prevChapterIndex);
+        pendingTopicIndexRef.current = Math.max(0, prevTopicCount - 1);
+        setSelectedChapterIndex(prevChapterIndex);
+    };
+
+    const handleNext = () => {
+        if (topicList.length === 0) return;
+
+        if (!isLastSlide) {
+            setSelectedTopicIndex((i) => Math.min(topicList.length - 1, i + 1));
+            return;
+        }
+
+        if (!isLastChapter) {
+            setSelectedChapterIndex((i) => {
+                const maxIndex = (courseContent?.length ?? 1) - 1;
+                return Math.min(maxIndex, i + 1);
             });
+        }
+    };
 
-            console.log(result);
-            refreshData()
-            toast.success('Chapter Marked Completed! ')
-            setLoading(false);
-
-    }
-    const markInCompleteChapter = async() =>{
-        setLoading(false);
-        const completeChap = completedChapter.filter(item => item != selectedChapterIndex);
-        const result=await axios.put('/api/enroll-course',{
-            courseId:courseId,
-            completedChapter:completeChap
+    const markChapterCompleted = async () => {
+        setLoading(true);
+        try {
+            const updated = Array.from(new Set([...completedChapter, selectedChapterIndex]));
+            await axios.put("/api/enroll-course", {
+                courseId,
+                completedChapter: updated,
             });
-
-            console.log(result);
-            refreshData()
-            toast.success('Chapter Marked InCompleted! ')
+            refreshData?.();
+            toast.success("Chapter Marked Completed!");
+        } catch (e) {
+            toast.error("Something went wrong");
+        } finally {
             setLoading(false);
+        }
+    };
 
+    const markInCompleteChapter = async () => {
+        setLoading(true);
+        try {
+            const updated = completedChapter.filter((item) => item !== selectedChapterIndex);
+            await axios.put("/api/enroll-course", {
+                courseId,
+                completedChapter: updated,
+            });
+            refreshData?.();
+            toast.success("Chapter Marked InCompleted!");
+        } catch (e) {
+            toast.error("Something went wrong");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!courseContent || courseContent.length === 0) {
+        return <div className="p-10 text-sm text-muted-foreground">No course content found.</div>;
     }
 
-   return(
-        <div className="p-10">
+    return (
+        <div className="flex-1 min-w-0 p-6 bg-background rounded-xl border border-border">
             <div className="flex justify-between items-center">
-                <h2 className="font-bold text-2xl">{selectedChapterIndex+1}.{courseContent?.[selectedChapterIndex]?.courseData?.chapterName}</h2>
-            {!completedChapter?.includes(selectedChapterIndex)?
-               <Button onClick={() => markChapterCompleted()}
-               disabled={loading}
-               >{loading?<Loader2Icon className="animate-spin"/>:
-                  <CheckCircle />}
-                   Mark as Completed
-              </Button>:
-              <Button variant="outline" onClick= {markInCompleteChapter}
-              disabled={loading}
-              >
-                {loading?<Loader2Icon className="animate-spin"/>: 
-                <X/>} Mark Incomplete
-              </Button>
-}
-            </div>
-            <h2 className="my-2 font-bold text-lg">Related Videos</h2>
-            <div className='grid grid-cols-2 md:grid-cols-2 '>
-                {videoData?.map((video,index)=> index < 2 &&(
-                    <div key={index}>
-                        <YouTube
-                        videoId={video?.videoId}
-                        opts={{
-                            height:'350',
-                            width: '650'
-                        }}
-                        />
-                    </div>                
-                ))}
-            </div>
-            <div>
-                {Array.isArray(topics) && topics.map((topic,index)=>(
-                    <div key={index} className="mt-10 p-5 bg-secondary ronded-2xl">
-                         <h2 className="font-bold text-2xl text-primary"> {index+1}.{topic?.topic}</h2>
-                         {/* <p>{topic?.content}</p> */}
-                         <div dangerouslySetInnerHTML={{__html: topic?.content}}
-                         style={{
-                            lineHeight: '2.5'
-                         }}>
+                <h2 className="font-bold text-2xl">
+                    {selectedChapterIndex + 1}.
+                    {courseContent?.[selectedChapterIndex]?.courseData?.chapterName}
+                </h2>
 
-                         </div>
+                {!completedChapter?.includes(selectedChapterIndex) ? (
+                    <Button onClick={markChapterCompleted} disabled={loading}>
+                        {loading ? <Loader2Icon className="animate-spin" /> : <CheckCircle />}
+                        Mark as Completed
+                    </Button>
+                ) : (
+                    <Button variant="outline" onClick={markInCompleteChapter} disabled={loading}>
+                        {loading ? <Loader2Icon className="animate-spin" /> : <X />}
+                        Mark Incomplete
+                    </Button>
+                )}
+            </div>
+
+            <div className="my-2 flex items-center justify-between">
+                <h2 className="font-bold text-lg">Related Videos</h2>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowVideos((v) => !v)}
+                    aria-expanded={showVideos}
+                >
+                    <ChevronDown className={showVideos ? "rotate-180 transition-transform" : "transition-transform"} />
+                </Button>
+            </div>
+
+            <div
+                className={showVideos ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "hidden"}
+                aria-hidden={!showVideos}
+            >
+                {videoData?.map(
+                    (video, index) =>
+                        index < 2 && (
+                            <div key={video?.videoId ?? index} className="w-full">
+                                <div className="w-full aspect-video overflow-hidden rounded-lg bg-secondary">
+                                    <YouTube
+                                        videoId={video?.videoId}
+                                        opts={youtubeOpts}
+                                        className="w-full h-full"
+                                        iframeClassName="w-full h-full"
+                                    />
+                                </div>
+                            </div>
+                        )
+                )}
+            </div>
+
+            <div className="mt-8">
+                <div className="flex items-center justify-between">
+                    <h2 className="font-bold text-lg">Chapter Content</h2>
+                    <div className="text-sm text-muted-foreground">
+                        {topicList.length > 0
+                            ? `Slide ${selectedTopicIndex + 1} of ${topicList.length}`
+                            : "No topics"}
                     </div>
-                ))}
+                </div>
+
+                {topicList.length > 0 ? (
+                    <div className="mt-3 p-5 bg-secondary rounded-2xl">
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 className="font-bold text-2xl text-primary">
+                                {selectedTopicIndex + 1}.{topicList[selectedTopicIndex]?.topic}
+                            </h2>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={handlePrev}
+                                    disabled={topicList.length === 0 || (isFirstSlide && isFirstChapter)}
+                                >
+                                    Prev
+                                </Button>
+                                <Button
+                                    onClick={() =>
+                                        handleNext()
+                                    }
+                                    disabled={
+                                        topicList.length === 0 ||
+                                        (isLastSlide && isLastChapter)
+                                    }
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div
+                            className="mt-6 max-h-[65vh] overflow-auto"
+                            dangerouslySetInnerHTML={{ __html: topicList[selectedTopicIndex]?.content }}
+                            style={{ lineHeight: "2.5" }}
+                        />
+                    </div>
+                ) : (
+                    <div className="mt-3 text-sm text-muted-foreground">No topics found for this chapter.</div>
+                )}
             </div>
         </div>
-    )
+    );
 }
-export default ChapterContent
+
+export default ChapterContent;

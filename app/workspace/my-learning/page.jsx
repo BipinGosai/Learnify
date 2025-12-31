@@ -4,10 +4,10 @@ import EnrollCourseList from '../_components/EnrollCourseList'
 
 function myLearning() {
   return (
-    <div> 
-      <WelcomeBanner/>
-      <h2 className='font-bold text-2xl mt-5'>My Learning</h2>
-      <EnrollCourseList/>
+    <div className="space-y-6">
+      <WelcomeBanner />
+      <h2 className='font-bold text-2xl'>My Learning</h2>
+      <EnrollCourseList />
     </div>
   )
 }

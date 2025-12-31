@@ -5,11 +5,10 @@ import EnrollCourseList from './_components/EnrollCourseList'
 
 function Workspace() {
   return (
-    <div>
-      <WelcomeBanner/>
-      <EnrollCourseList/>
-      <CourseList/>
-      
+    <div className="space-y-8">
+      <WelcomeBanner />
+      <EnrollCourseList />
+      <CourseList />
     </div>
   )
 }
